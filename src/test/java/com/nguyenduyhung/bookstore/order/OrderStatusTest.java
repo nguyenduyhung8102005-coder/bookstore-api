@@ -36,4 +36,17 @@ class OrderStatusTest {
     void canTransitionTo(OrderStatus from, OrderStatus to, boolean allowed) {
         assertThat(from.canTransitionTo(to)).isEqualTo(allowed);
     }
+
+    /** Doanh thu = đã trả tiền và chưa hủy. */
+    @ParameterizedTest(name = "{0} tính vào doanh thu: {1}")
+    @CsvSource({
+            "PENDING,   false",
+            "PAID,      true",
+            "SHIPPING,  true",
+            "COMPLETED, true",
+            "CANCELLED, false"
+    })
+    void countsAsRevenue(OrderStatus status, boolean expected) {
+        assertThat(status.countsAsRevenue()).isEqualTo(expected);
+    }
 }

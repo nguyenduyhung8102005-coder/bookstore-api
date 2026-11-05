@@ -28,4 +28,17 @@ public enum OrderStatus {
             case COMPLETED, CANCELLED -> false;
         };
     }
+
+    /**
+     * Đơn ở trạng thái này có được tính vào doanh thu không (dùng cho thống kê).
+     *
+     * Chỉ tính đơn ĐÃ TRẢ TIỀN và CHƯA HỦY. Đơn PAID rồi bị hủy cũng có paid_at
+     * nhưng không tính, vì giả định tiền đã được hoàn lại cho khách.
+     */
+    public boolean countsAsRevenue() {
+        return switch (this) {
+            case PAID, SHIPPING, COMPLETED -> true;
+            case PENDING, CANCELLED -> false;
+        };
+    }
 }

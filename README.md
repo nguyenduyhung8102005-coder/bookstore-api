@@ -82,6 +82,15 @@ Dự án dùng kiểu "UPDATE có điều kiện" ở chỗ khác: thu hồi ref
 - `PUT /api/v1/reviews/{id}` (chỉ người viết) · `DELETE /api/v1/reviews/{id}` (người viết hoặc ADMIN).
 - Chi tiết sách (`GET /api/v1/books/{id}`) có thêm `averageRating` (1 chữ số thập phân) và `reviewCount`, tính bằng AVG/COUNT ngay trong DB.
 
+## Thống kê cho admin
+
+- `GET /api/v1/admin/reports/revenue?from=2026-11-01&to=2026-11-30&groupBy=DAY` (`groupBy` = `DAY` | `MONTH`, mặc định `DAY`): doanh thu và số đơn của từng kỳ, có đủ mọi kỳ trong khoảng (kỳ không có đơn = 0), kèm tổng.
+- `GET /api/v1/admin/reports/best-sellers?from=2026-11-01&to=2026-11-30&limit=10` (`limit` 1–50): sách bán chạy theo số lượng.
+- `from`, `to` là ngày theo **giờ Việt Nam** (`app.report.time-zone`), tính cả hai đầu. Một đơn trả tiền lúc 00:30 ngày 05/11 giờ Việt Nam (17:30 UTC ngày 04/11) được tính vào ngày 05/11.
+- Doanh thu tính theo ngày **trả tiền** (`paid_at`), chỉ gồm đơn `PAID`, `SHIPPING`, `COMPLETED`; đơn đã trả tiền rồi bị hủy không tính (coi như đã hoàn tiền).
+- Giới hạn: báo cáo theo ngày tối đa 366 ngày; theo tháng và sách bán chạy tối đa 36 tháng.
+- Việc gom nhóm và cộng tiền chạy trong PostgreSQL (`date_trunc` + `AT TIME ZONE`), ứng dụng chỉ nhận về các dòng đã tổng hợp.
+
 ## Chạy test
 
 ```bash
@@ -119,5 +128,5 @@ Lỗi:
 - [x] Giai đoạn 5a: Đặt hàng, trừ tồn kho an toàn khi mua đồng thời (optimistic locking + retry)
 - [x] Giai đoạn 5b: Thanh toán, hủy đơn, trạng thái đơn, tự hủy đơn quá hạn
 - [x] Giai đoạn 6: Đánh giá sách
-- [ ] Giai đoạn 7: Thống kê cho admin
+- [x] Giai đoạn 7: Thống kê cho admin
 - [ ] Giai đoạn 8: Docker hóa, hoàn thiện README

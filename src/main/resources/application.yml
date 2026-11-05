@@ -71,6 +71,9 @@ app:
     pending-timeout: 30m
     # Bao lâu job kiểm tra đơn quá hạn một lần (định dạng ISO-8601: PT1M = 1 phút).
     expiration-check-interval: PT1M
+  report:
+    # Múi giờ dùng để chia "ngày", "tháng" khi thống kê doanh thu (DB lưu thời gian theo UTC).
+    time-zone: Asia/Ho_Chi_Minh
   scheduling:
     # Đặt false để tắt mọi @Scheduled (integration test tắt để tự điều khiển job).
     enabled: true
