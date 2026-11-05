@@ -40,6 +40,12 @@ mvn spring-boot:run
 - Phân trang & sắp xếp: `&page=0&size=20&sort=price,asc` (tối đa 100 phần tử mỗi trang; sắp xếp được theo `createdAt`, `price`, `title`).
 - Danh sách sách chạy tối đa 3 câu SQL dù trang có bao nhiêu cuốn (đã xử lý N+1, có test đo bằng Hibernate Statistics).
 
+## Giỏ hàng (cần đăng nhập)
+
+- `GET /api/v1/cart` · `POST /api/v1/cart/items` `{bookId, quantity}` (sách đã có thì cộng dồn) · `PATCH /api/v1/cart/items/{bookId}` `{quantity}` · `DELETE /api/v1/cart/items/{bookId}` · `DELETE /api/v1/cart`
+- Mọi thao tác trả về giỏ mới nhất kèm `totalItems`, `totalAmount` và cờ `hasUnavailableItems`.
+- Giỏ hàng không giữ hàng và không chốt giá: tồn kho và giá được kiểm tra lại khi đặt hàng.
+
 ## Chạy test
 
 ```bash
@@ -73,7 +79,7 @@ Lỗi:
 - [x] Giai đoạn 1: Xác thực & phân quyền (JWT + refresh token)
 - [x] Giai đoạn 2: Quản lý sách, tác giả, thể loại
 - [x] Giai đoạn 3: Tìm kiếm, lọc, phân trang, xử lý N+1
-- [ ] Giai đoạn 4: Giỏ hàng
+- [x] Giai đoạn 4: Giỏ hàng
 - [ ] Giai đoạn 5: Đặt hàng, tồn kho, optimistic locking
 - [ ] Giai đoạn 6: Đánh giá sách
 - [ ] Giai đoạn 7: Thống kê cho admin

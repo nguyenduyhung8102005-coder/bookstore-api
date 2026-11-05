@@ -52,7 +52,7 @@ class CategoryServiceTest {
         assertThatThrownBy(() -> categoryService.create(new CategoryRequest("VĂN HỌC")))
                 .isInstanceOf(AppException.class)
                 .extracting("errorCode").isEqualTo(ErrorCode.CATEGORY_ALREADY_EXISTS);
-        verify(categoryRepository, never()).save(any());
+        verify(categoryRepository, never()).save(any(Category.class));
     }
 
     @Test
@@ -71,7 +71,7 @@ class CategoryServiceTest {
         assertThatThrownBy(() -> categoryService.delete(1L))
                 .isInstanceOf(AppException.class)
                 .extracting("errorCode").isEqualTo(ErrorCode.CATEGORY_IN_USE);
-        verify(categoryRepository, never()).delete(any());
+        verify(categoryRepository, never()).delete(any(Category.class));
     }
 
     @Test

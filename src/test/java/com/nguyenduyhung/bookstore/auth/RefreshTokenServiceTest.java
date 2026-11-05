@@ -22,6 +22,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -82,7 +83,7 @@ class RefreshTokenServiceTest {
 
     @Test
     void consume_unknownToken_isRejected() {
-        when(repository.findByTokenHashWithUser(any())).thenReturn(Optional.empty());
+        when(repository.findByTokenHashWithUser(anyString())).thenReturn(Optional.empty());
 
         assertInvalidRefreshToken();
     }
@@ -90,16 +91,16 @@ class RefreshTokenServiceTest {
     @Test
     void consume_expiredToken_isRejected() {
         RefreshToken token = storedToken(NOW, null); // hết hạn đúng thời điểm hiện tại
-        when(repository.findByTokenHashWithUser(any())).thenReturn(Optional.of(token));
+        when(repository.findByTokenHashWithUser(anyString())).thenReturn(Optional.of(token));
 
         assertInvalidRefreshToken();
-        verify(repository, never()).revokeIfActive(any(), any());
+        verify(repository, never()).revokeIfActive(any(Long.class), any(Instant.class));
     }
 
     @Test
     void consume_alreadyRevokedToken_revokesAllTokensOfUser() {
         RefreshToken token = storedToken(NOW.plusSeconds(60), NOW.minusSeconds(5));
-        when(repository.findByTokenHashWithUser(any())).thenReturn(Optional.of(token));
+        when(repository.findByTokenHashWithUser(anyString())).thenReturn(Optional.of(token));
 
         assertInvalidRefreshToken();
         verify(repository).revokeAllActiveByUserId(7L, NOW);
@@ -108,7 +109,7 @@ class RefreshTokenServiceTest {
     @Test
     void consume_lostRaceWithConcurrentRequest_isTreatedAsReuse() {
         RefreshToken token = storedToken(NOW.plusSeconds(60), null);
-        when(repository.findByTokenHashWithUser(any())).thenReturn(Optional.of(token));
+        when(repository.findByTokenHashWithUser(anyString())).thenReturn(Optional.of(token));
         when(repository.revokeIfActive(1L, NOW)).thenReturn(0); // request khác đã dùng trước
 
         assertInvalidRefreshToken();

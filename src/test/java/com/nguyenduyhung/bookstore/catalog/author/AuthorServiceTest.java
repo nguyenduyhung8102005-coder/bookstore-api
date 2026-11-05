@@ -59,7 +59,7 @@ class AuthorServiceTest {
         assertThatThrownBy(() -> authorService.delete(1L))
                 .isInstanceOf(AppException.class)
                 .extracting("errorCode").isEqualTo(ErrorCode.AUTHOR_IN_USE);
-        verify(authorRepository, never()).delete(any());
+        verify(authorRepository, never()).delete(any(Author.class));
     }
 
     private static Author author(Long id, String name) {

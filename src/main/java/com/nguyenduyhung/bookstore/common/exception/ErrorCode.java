@@ -22,6 +22,7 @@ public enum ErrorCode {
     VALIDATION_ERROR(HttpStatus.BAD_REQUEST, "Request validation failed"),
     INVALID_REQUEST_BODY(HttpStatus.BAD_REQUEST, "Malformed or unreadable request body"),
     INVALID_PARAMETER(HttpStatus.BAD_REQUEST, "Invalid request parameter"),
+    QUANTITY_LIMIT_EXCEEDED(HttpStatus.BAD_REQUEST, "Quantity exceeds the allowed limit"),
 
     // ===== 401 - Chưa xác thực / xác thực thất bại =====
     UNAUTHENTICATED(HttpStatus.UNAUTHORIZED, "Authentication is required"),
@@ -41,9 +42,14 @@ public enum ErrorCode {
     AUTHOR_IN_USE(HttpStatus.CONFLICT, "Author is still linked to books and cannot be deleted"),
     ISBN_ALREADY_EXISTS(HttpStatus.CONFLICT, "A book with the same ISBN already exists"),
     CONCURRENT_UPDATE(HttpStatus.CONFLICT, "The data was modified by another request, please retry"),
+    // 409 vì yêu cầu hợp lệ về cú pháp nhưng xung đột với TRẠNG THÁI hiện tại của dữ liệu
+    // (sách đã ngừng bán, tồn kho không đủ); trạng thái thay đổi thì yêu cầu có thể thành công.
+    BOOK_NOT_AVAILABLE(HttpStatus.CONFLICT, "Book is no longer available for sale"),
+    INSUFFICIENT_STOCK(HttpStatus.CONFLICT, "Not enough stock for the requested quantity"),
 
     // ===== 404 / 405 / 409 / 415 =====
     RESOURCE_NOT_FOUND(HttpStatus.NOT_FOUND, "Resource not found"),
+    CART_ITEM_NOT_FOUND(HttpStatus.NOT_FOUND, "This book is not in your cart"),
     ENDPOINT_NOT_FOUND(HttpStatus.NOT_FOUND, "Endpoint not found"),
     METHOD_NOT_ALLOWED(HttpStatus.METHOD_NOT_ALLOWED, "HTTP method not supported for this endpoint"),
     DATA_CONFLICT(HttpStatus.CONFLICT, "Request conflicts with existing data"),

@@ -74,7 +74,7 @@ class AuthServiceTest {
         assertThatThrownBy(() -> authService.register(new RegisterRequest("an@example.com", "Secret@123", "An")))
                 .isInstanceOf(AppException.class)
                 .extracting("errorCode").isEqualTo(ErrorCode.EMAIL_ALREADY_EXISTS);
-        verify(userRepository, never()).save(any());
+        verify(userRepository, never()).save(any(User.class));
     }
 
     @Test
