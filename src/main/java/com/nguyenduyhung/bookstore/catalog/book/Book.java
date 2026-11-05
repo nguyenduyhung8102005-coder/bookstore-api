@@ -104,4 +104,20 @@ public class Book extends BaseEntity {
     public void deactivate() {
         this.active = false;
     }
+
+    /**
+     * Trừ tồn kho khi bán. Service phải kiểm tra đủ hàng TRƯỚC (để trả lỗi nghiệp
+     * vụ rõ ràng); kiểm tra ở đây là chốt chặn để entity không bao giờ có tồn kho âm.
+     *
+     * Bản thân method này KHÔNG an toàn khi nhiều request chạy song song. Thứ làm
+     * nó an toàn là @Version: khi lưu, Hibernate chỉ UPDATE nếu version chưa đổi
+     * kể từ lúc đọc, nên hai request không thể cùng trừ từ một con số cũ.
+     */
+    public void decreaseStock(int quantity) {
+        if (quantity <= 0 || quantity > stockQuantity) {
+            throw new IllegalArgumentException(
+                    "Cannot decrease stock by %d, current stock is %d".formatted(quantity, stockQuantity));
+        }
+        this.stockQuantity -= quantity;
+    }
 }

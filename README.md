@@ -46,6 +46,23 @@ mvn spring-boot:run
 - Mọi thao tác trả về giỏ mới nhất kèm `totalItems`, `totalAmount` và cờ `hasUnavailableItems`.
 - Giỏ hàng không giữ hàng và không chốt giá: tồn kho và giá được kiểm tra lại khi đặt hàng.
 
+## Đặt hàng (cần đăng nhập)
+
+- `POST /api/v1/orders` `{recipientName, phone, shippingAddress}`: tạo đơn PENDING từ toàn bộ giỏ hàng, trừ tồn kho, chốt giá, xóa giỏ. Tất cả trong một transaction: một cuốn thiếu hàng thì cả đơn bị hủy.
+- `GET /api/v1/orders` (mới nhất trước) · `GET /api/v1/orders/{id}` (đơn của người khác trả 404).
+
+### Hai người cùng mua cuốn sách cuối cùng
+
+Bảng `books` có cột `version` (`@Version`). Mỗi câu UPDATE đều kèm điều kiện `WHERE version = <giá trị đã đọc>`, nên khi hai đơn cùng trừ kho từ một con số cũ, chỉ đơn commit trước thành công; đơn còn lại nhận `ObjectOptimisticLockingFailureException`, được thử lại tối đa 3 lần trong transaction mới, và lần thử lại sẽ thấy đúng tồn kho mới nhất. Test `OrderConcurrencyIT` cho nhiều luồng đặt hàng cùng lúc và kiểm tra: không bao giờ bán quá số lượng, và `số đã bán + tồn kho còn lại = tồn kho ban đầu`.
+
+| Cách làm | Cơ chế | Ưu điểm | Nhược điểm |
+|---|---|---|---|
+| **Optimistic lock** (`@Version`) — đang dùng | Không khóa khi đọc; phát hiện xung đột lúc ghi, thử lại | Không giữ khóa lâu; tốt khi xung đột hiếm; bảo vệ mọi thao tác sửa sách (cả admin sửa giá) | Xung đột nhiều thì retry nhiều; phải tự viết retry ngoài transaction |
+| **Pessimistic lock** (`SELECT ... FOR UPDATE`) | Khóa dòng ngay khi đọc, người sau phải chờ | Không cần retry, hành vi dễ đoán | Giữ khóa suốt transaction; dễ deadlock nếu khóa nhiều dòng sai thứ tự; giảm khả năng chạy song song |
+| **UPDATE có điều kiện** (`UPDATE books SET stock = stock - :q WHERE id = :id AND stock >= :q`) | DB tự kiểm tra và trừ trong một câu nguyên tử | Nhanh nhất, không cần retry, tốt cho "flash sale" | Đi vòng qua entity (phải tự đồng bộ persistence context); chỉ bảo vệ đúng thao tác trừ kho |
+
+Dự án dùng kiểu "UPDATE có điều kiện" ở chỗ khác: thu hồi refresh token (`RefreshTokenRepository.revokeIfActive`).
+
 ## Chạy test
 
 ```bash
@@ -80,7 +97,8 @@ Lỗi:
 - [x] Giai đoạn 2: Quản lý sách, tác giả, thể loại
 - [x] Giai đoạn 3: Tìm kiếm, lọc, phân trang, xử lý N+1
 - [x] Giai đoạn 4: Giỏ hàng
-- [ ] Giai đoạn 5: Đặt hàng, tồn kho, optimistic locking
+- [x] Giai đoạn 5a: Đặt hàng, trừ tồn kho an toàn khi mua đồng thời (optimistic locking + retry)
+- [ ] Giai đoạn 5b: Thanh toán, hủy đơn, trạng thái đơn, tự hủy đơn quá hạn
 - [ ] Giai đoạn 6: Đánh giá sách
 - [ ] Giai đoạn 7: Thống kê cho admin
 - [ ] Giai đoạn 8: Docker hóa, hoàn thiện README

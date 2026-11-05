@@ -1,0 +1,41 @@
+package com.nguyenduyhung.bookstore.order;
+
+import org.junit.jupiter.api.Test;
+
+import java.math.BigDecimal;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+class OrderTest {
+
+    @Test
+    void newOrder_isPendingWithZeroTotal() {
+        Order order = Order.create(1L, " An ", "0912345678", " Hà Nội ");
+
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.PENDING);
+        assertThat(order.getTotalAmount()).isEqualTo(new BigDecimal("0.00"));
+        assertThat(order.getRecipientName()).isEqualTo("An");
+    }
+
+    @Test
+    void addItem_recalculatesTotalAndItemCount() {
+        Order order = Order.create(1L, "An", "0912345678", "Hà Nội");
+
+        order.addItem(10L, "Dế Mèn", new BigDecimal("75000.00"), 2);
+        order.addItem(11L, "Số đỏ", new BigDecimal("120000.50"), 1);
+
+        assertThat(order.getTotalAmount()).isEqualByComparingTo("270000.50");
+        assertThat(order.totalItems()).isEqualTo(3);
+        assertThat(order.getItems()).extracting(OrderItem::getBookTitle).containsExactly("Dế Mèn", "Số đỏ");
+    }
+
+    @Test
+    void items_cannotBeModifiedFromOutside() {
+        Order order = Order.create(1L, "An", "0912345678", "Hà Nội");
+        order.addItem(10L, "Dế Mèn", new BigDecimal("75000.00"), 1);
+
+        assertThatThrownBy(() -> order.getItems().clear())
+                .isInstanceOf(UnsupportedOperationException.class);
+    }
+}

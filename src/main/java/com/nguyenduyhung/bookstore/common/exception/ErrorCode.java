@@ -46,6 +46,7 @@ public enum ErrorCode {
     // (sách đã ngừng bán, tồn kho không đủ); trạng thái thay đổi thì yêu cầu có thể thành công.
     BOOK_NOT_AVAILABLE(HttpStatus.CONFLICT, "Book is no longer available for sale"),
     INSUFFICIENT_STOCK(HttpStatus.CONFLICT, "Not enough stock for the requested quantity"),
+    CART_EMPTY(HttpStatus.CONFLICT, "Your cart is empty"),
 
     // ===== 404 / 405 / 409 / 415 =====
     RESOURCE_NOT_FOUND(HttpStatus.NOT_FOUND, "Resource not found"),

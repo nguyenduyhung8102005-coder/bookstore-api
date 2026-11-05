@@ -8,7 +8,7 @@ import jakarta.validation.Path;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.InvalidDataAccessApiUsageException;
-import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.dao.ConcurrencyFailureException;
 import org.springframework.data.mapping.PropertyReferenceException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -165,11 +165,14 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Optimistic locking (@Version) phát hiện dữ liệu đã bị request khác sửa trong
-     * lúc request này đang xử lý. 409 báo client tải lại dữ liệu rồi thử lại.
+     * Xung đột do nhiều request cùng sửa một dữ liệu:
+     * - optimistic locking (@Version) phát hiện dữ liệu đã bị request khác sửa;
+     * - deadlock hoặc không lấy được khóa trong DB.
+     * ConcurrencyFailureException là lớp cha của tất cả các trường hợp trên.
+     * 409 báo client tải lại dữ liệu rồi thử lại.
      */
-    @ExceptionHandler(OptimisticLockingFailureException.class)
-    public ResponseEntity<ApiResponse<Void>> handleOptimisticLock(OptimisticLockingFailureException ex) {
+    @ExceptionHandler(ConcurrencyFailureException.class)
+    public ResponseEntity<ApiResponse<Void>> handleConcurrencyFailure(ConcurrencyFailureException ex) {
         return build(ErrorCode.CONCURRENT_UPDATE, ErrorCode.CONCURRENT_UPDATE.getDefaultMessage(), null);
     }
 

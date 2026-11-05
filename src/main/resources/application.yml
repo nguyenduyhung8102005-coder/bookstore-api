@@ -27,6 +27,10 @@ spring:
         # tải luôn quan hệ đó cho tối đa 100 entity cùng loại đang có trong session,
         # bằng MỘT câu "... WHERE id IN (...)" thay vì mỗi entity một câu (chống N+1).
         default_batch_fetch_size: 100
+        # Khi flush, sắp xếp các câu UPDATE theo loại entity và id. Hai transaction
+        # cùng sửa nhiều cuốn sách sẽ khóa các dòng theo CÙNG một thứ tự, nên không
+        # thể rơi vào deadlock kiểu "A giữ sách 1 chờ sách 2, B giữ sách 2 chờ sách 1".
+        order_updates: true
 
   flyway:
     enabled: true
