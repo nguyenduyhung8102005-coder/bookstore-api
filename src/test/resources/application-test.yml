@@ -1,0 +1,14 @@
+# Cấu hình bổ sung CHỈ cho integration test (profile "test", bật trong AbstractIntegrationTest).
+# File này được GỘP thêm vào application.yml chính, không thay thế nó.
+spring:
+  jpa:
+    properties:
+      hibernate:
+        # Bật bộ đếm thống kê của Hibernate (số câu SQL đã chạy...) để test đo được N+1.
+        # Không bật ở môi trường thật vì tốn thêm chi phí cho mọi truy vấn.
+        generate_statistics: true
+
+logging:
+  level:
+    # Khi bật statistics, Hibernate in "Session Metrics" sau MỖI session; tắt cho log gọn.
+    org.hibernate.engine.internal.StatisticalLoggingSessionEventListener: WARN

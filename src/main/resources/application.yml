@@ -23,6 +23,10 @@ spring:
       hibernate:
         jdbc:
           time_zone: UTC
+        # Khi cần tải một quan hệ lazy (ví dụ authors của một cuốn sách), Hibernate
+        # tải luôn quan hệ đó cho tối đa 100 entity cùng loại đang có trong session,
+        # bằng MỘT câu "... WHERE id IN (...)" thay vì mỗi entity một câu (chống N+1).
+        default_batch_fetch_size: 100
 
   flyway:
     enabled: true
@@ -66,5 +70,6 @@ app:
 
 logging:
   level:
-    # Đổi thành DEBUG khi cần xem câu SQL Hibernate sinh ra (dùng ở GĐ 3).
+    # Đổi thành DEBUG để in ra mọi câu SQL Hibernate sinh ra (cách nhanh nhất để phát hiện N+1).
+    # Thêm org.hibernate.orm.jdbc.bind: TRACE nếu muốn xem cả giá trị tham số.
     org.hibernate.SQL: INFO

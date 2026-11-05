@@ -36,7 +36,9 @@ mvn spring-boot:run
 - Public (không cần token): `GET /api/v1/books`, `GET /api/v1/books/{id}`, `GET /api/v1/categories`, `GET /api/v1/authors`, `GET /api/v1/authors/{id}`.
 - Quản trị (role ADMIN): `POST/PUT/DELETE /api/v1/admin/{books|authors|categories}`.
 - Xóa sách là soft delete (`active = false`): sách ẩn khỏi API public nhưng vẫn còn trong DB cho đơn hàng cũ tham chiếu.
-- Phân trang: `?page=0&size=20&sort=price,desc` (tối đa 100 phần tử mỗi trang).
+- Tìm kiếm & lọc: `GET /api/v1/books?keyword=dế mèn&categoryId=1&authorId=2&minPrice=50000&maxPrice=200000`
+- Phân trang & sắp xếp: `&page=0&size=20&sort=price,asc` (tối đa 100 phần tử mỗi trang; sắp xếp được theo `createdAt`, `price`, `title`).
+- Danh sách sách chạy tối đa 3 câu SQL dù trang có bao nhiêu cuốn (đã xử lý N+1, có test đo bằng Hibernate Statistics).
 
 ## Chạy test
 
@@ -70,7 +72,7 @@ Lỗi:
 - [x] Giai đoạn 0: Nền móng (cấu hình, response chuẩn, xử lý lỗi tập trung, Swagger, CI)
 - [x] Giai đoạn 1: Xác thực & phân quyền (JWT + refresh token)
 - [x] Giai đoạn 2: Quản lý sách, tác giả, thể loại
-- [ ] Giai đoạn 3: Tìm kiếm, lọc, phân trang, xử lý N+1
+- [x] Giai đoạn 3: Tìm kiếm, lọc, phân trang, xử lý N+1
 - [ ] Giai đoạn 4: Giỏ hàng
 - [ ] Giai đoạn 5: Đặt hàng, tồn kho, optimistic locking
 - [ ] Giai đoạn 6: Đánh giá sách

@@ -15,7 +15,8 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
-import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.validation.BindException;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -52,11 +53,17 @@ public class GlobalExceptionHandler {
 
     // ===================== Lỗi validation =====================
 
-    /** @Valid trên @RequestBody không hợp lệ, ví dụ email để trống. */
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ApiResponse<Void>> handleBodyValidation(MethodArgumentNotValidException ex) {
+    /**
+     * Lỗi khi gán dữ liệu request vào object rồi validate:
+     * - @Valid @RequestBody không hợp lệ (MethodArgumentNotValidException)
+     * - @Valid trên object nhận từ query string, ví dụ BookSearchCriteria
+     * MethodArgumentNotValidException là lớp con của BindException, nên một
+     * handler cho BindException bắt được cả hai.
+     */
+    @ExceptionHandler(BindException.class)
+    public ResponseEntity<ApiResponse<Void>> handleBindingValidation(BindException ex) {
         List<FieldErrorResponse> errors = ex.getBindingResult().getFieldErrors().stream()
-                .map(fe -> new FieldErrorResponse(fe.getField(), fe.getDefaultMessage()))
+                .map(fe -> new FieldErrorResponse(fe.getField(), fieldErrorMessage(fe)))
                 .toList();
         return build(ErrorCode.VALIDATION_ERROR, ErrorCode.VALIDATION_ERROR.getDefaultMessage(), errors);
     }
@@ -203,6 +210,18 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(errorCode.getHttpStatus())
                 .body(ApiResponse.error(errorCode, message, errors));
+    }
+
+    /**
+     * Lỗi chuyển kiểu (ví dụ ?minPrice=abc) có câu thông báo mặc định chứa tên
+     * class Java ("Failed to convert ... java.math.BigDecimal"), vừa khó hiểu vừa
+     * lộ chi tiết nội bộ, nên thay bằng câu ngắn gọn.
+     */
+    private static String fieldErrorMessage(FieldError fieldError) {
+        if (fieldError.isBindingFailure()) {
+            return "Invalid value '%s'".formatted(fieldError.getRejectedValue());
+        }
+        return fieldError.getDefaultMessage();
     }
 
     /** "createOrder.request.quantity" -> "quantity" */

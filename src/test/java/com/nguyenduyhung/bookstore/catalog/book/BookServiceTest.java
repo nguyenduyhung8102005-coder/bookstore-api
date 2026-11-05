@@ -5,15 +5,22 @@ import com.nguyenduyhung.bookstore.catalog.author.AuthorService;
 import com.nguyenduyhung.bookstore.catalog.author.dto.AuthorSummaryResponse;
 import com.nguyenduyhung.bookstore.catalog.book.dto.BookRequest;
 import com.nguyenduyhung.bookstore.catalog.book.dto.BookResponse;
+import com.nguyenduyhung.bookstore.catalog.book.dto.BookSearchCriteria;
 import com.nguyenduyhung.bookstore.catalog.category.Category;
 import com.nguyenduyhung.bookstore.catalog.category.CategoryService;
 import com.nguyenduyhung.bookstore.common.exception.AppException;
 import com.nguyenduyhung.bookstore.common.exception.ErrorCode;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 
 import java.math.BigDecimal;
 import java.util.Optional;
@@ -65,7 +72,7 @@ class BookServiceTest {
                 .isInstanceOf(AppException.class)
                 .extracting("errorCode").isEqualTo(ErrorCode.ISBN_ALREADY_EXISTS);
         verifyNoInteractions(categoryService, authorService);
-        verify(bookRepository, never()).save(any());
+        verify(bookRepository, never()).save(any(Book.class));
     }
 
     @Test
@@ -86,7 +93,7 @@ class BookServiceTest {
         bookService.delete(5L);
 
         assertThat(book.isActive()).isFalse();
-        verify(bookRepository, never()).delete(any());
+        verify(bookRepository, never()).delete(any(Book.class));
     }
 
     @Test
@@ -97,6 +104,39 @@ class BookServiceTest {
                 .isInstanceOf(AppException.class)
                 .extracting("errorCode").isEqualTo(ErrorCode.RESOURCE_NOT_FOUND);
     }
+
+    // ===================== search =====================
+
+    @Test
+    void search_appendsIdAsFinalSortKey_forStablePagination() {
+        when(bookRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(Page.empty());
+
+        bookService.search(NO_FILTER, PageRequest.of(0, 20, Sort.by("price")));
+
+        ArgumentCaptor<Pageable> pageable = ArgumentCaptor.forClass(Pageable.class);
+        verify(bookRepository).findAll(any(Specification.class), pageable.capture());
+        assertThat(pageable.getValue().getSort()).containsExactly(Sort.Order.asc("price"), Sort.Order.asc("id"));
+    }
+
+    @Test
+    void search_sortByPropertyOutsideWhitelist_isRejected() {
+        assertThatThrownBy(() -> bookService.search(NO_FILTER, PageRequest.of(0, 20, Sort.by("stockQuantity"))))
+                .isInstanceOf(AppException.class)
+                .hasMessageContaining("stockQuantity")
+                .extracting("errorCode").isEqualTo(ErrorCode.INVALID_PARAMETER);
+        verifyNoInteractions(bookRepository);
+    }
+
+    @Test
+    void search_minPriceGreaterThanMaxPrice_isRejected() {
+        var criteria = new BookSearchCriteria(null, null, null, new BigDecimal("200000"), new BigDecimal("100000"));
+
+        assertThatThrownBy(() -> bookService.search(criteria, PageRequest.of(0, 20)))
+                .isInstanceOf(AppException.class)
+                .extracting("errorCode").isEqualTo(ErrorCode.INVALID_PARAMETER);
+    }
+
+    private static final BookSearchCriteria NO_FILTER = new BookSearchCriteria(null, null, null, null, null);
 
     private static BookRequest request(String isbn, Set<Long> authorIds) {
         return new BookRequest("Dế Mèn phiêu lưu ký", isbn, "Truyện thiếu nhi kinh điển",
