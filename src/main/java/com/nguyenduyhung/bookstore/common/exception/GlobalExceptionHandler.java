@@ -7,6 +7,9 @@ import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.Path;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.InvalidDataAccessApiUsageException;
+import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.data.mapping.PropertyReferenceException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
@@ -152,6 +155,37 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleDataIntegrity(DataIntegrityViolationException ex) {
         log.warn("Data integrity violation: {}", ex.getMostSpecificCause().getMessage());
         return build(ErrorCode.DATA_CONFLICT, ErrorCode.DATA_CONFLICT.getDefaultMessage(), null);
+    }
+
+    /**
+     * Optimistic locking (@Version) phát hiện dữ liệu đã bị request khác sửa trong
+     * lúc request này đang xử lý. 409 báo client tải lại dữ liệu rồi thử lại.
+     */
+    @ExceptionHandler(OptimisticLockingFailureException.class)
+    public ResponseEntity<ApiResponse<Void>> handleOptimisticLock(OptimisticLockingFailureException ex) {
+        return build(ErrorCode.CONCURRENT_UPDATE, ErrorCode.CONCURRENT_UPDATE.getDefaultMessage(), null);
+    }
+
+    // ===================== Tham số sắp xếp không hợp lệ =====================
+
+    /**
+     * Client gửi ?sort=abc với "abc" không phải thuộc tính của entity. Spring Data
+     * ném PropertyReferenceException, đôi khi bọc trong InvalidDataAccessApiUsageException.
+     * Đây là lỗi của request (400), không phải lỗi server (500).
+     */
+    @ExceptionHandler(PropertyReferenceException.class)
+    public ResponseEntity<ApiResponse<Void>> handlePropertyReference(PropertyReferenceException ex) {
+        String message = "Unknown sort property: '%s'".formatted(ex.getPropertyName());
+        return build(ErrorCode.INVALID_PARAMETER, message, null);
+    }
+
+    @ExceptionHandler(InvalidDataAccessApiUsageException.class)
+    public ResponseEntity<ApiResponse<Void>> handleInvalidDataAccessApiUsage(InvalidDataAccessApiUsageException ex) {
+        if (ex.getCause() instanceof PropertyReferenceException cause) {
+            return handlePropertyReference(cause);
+        }
+        // Các trường hợp khác là lỗi lập trình thật sự, xử lý như lỗi 500.
+        return handleUnexpected(ex);
     }
 
     // ===================== Lỗi không lường trước =====================

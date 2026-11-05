@@ -31,6 +31,13 @@ mvn spring-boot:run
 - Hết hạn access token: gọi `POST /api/v1/auth/refresh` với refresh token để nhận cặp token mới (token cũ bị vô hiệu).
 - Khi chạy local, tài khoản ADMIN mặc định được tạo lúc khởi động: `admin@bookstore.local` / `Admin@123456`. Môi trường thật phải đặt `ADMIN_EMAIL`, `ADMIN_PASSWORD` và `JWT_SECRET`.
 
+## Danh mục sách
+
+- Public (không cần token): `GET /api/v1/books`, `GET /api/v1/books/{id}`, `GET /api/v1/categories`, `GET /api/v1/authors`, `GET /api/v1/authors/{id}`.
+- Quản trị (role ADMIN): `POST/PUT/DELETE /api/v1/admin/{books|authors|categories}`.
+- Xóa sách là soft delete (`active = false`): sách ẩn khỏi API public nhưng vẫn còn trong DB cho đơn hàng cũ tham chiếu.
+- Phân trang: `?page=0&size=20&sort=price,desc` (tối đa 100 phần tử mỗi trang).
+
 ## Chạy test
 
 ```bash
@@ -62,7 +69,7 @@ Lỗi:
 
 - [x] Giai đoạn 0: Nền móng (cấu hình, response chuẩn, xử lý lỗi tập trung, Swagger, CI)
 - [x] Giai đoạn 1: Xác thực & phân quyền (JWT + refresh token)
-- [ ] Giai đoạn 2: Quản lý sách, tác giả, thể loại
+- [x] Giai đoạn 2: Quản lý sách, tác giả, thể loại
 - [ ] Giai đoạn 3: Tìm kiếm, lọc, phân trang, xử lý N+1
 - [ ] Giai đoạn 4: Giỏ hàng
 - [ ] Giai đoạn 5: Đặt hàng, tồn kho, optimistic locking

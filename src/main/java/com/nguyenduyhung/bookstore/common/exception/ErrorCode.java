@@ -36,6 +36,11 @@ public enum ErrorCode {
 
     // ===== 409 - Xung đột dữ liệu nghiệp vụ =====
     EMAIL_ALREADY_EXISTS(HttpStatus.CONFLICT, "Email is already registered"),
+    CATEGORY_ALREADY_EXISTS(HttpStatus.CONFLICT, "A category with the same name already exists"),
+    CATEGORY_IN_USE(HttpStatus.CONFLICT, "Category still has books and cannot be deleted"),
+    AUTHOR_IN_USE(HttpStatus.CONFLICT, "Author is still linked to books and cannot be deleted"),
+    ISBN_ALREADY_EXISTS(HttpStatus.CONFLICT, "A book with the same ISBN already exists"),
+    CONCURRENT_UPDATE(HttpStatus.CONFLICT, "The data was modified by another request, please retry"),
 
     // ===== 404 / 405 / 409 / 415 =====
     RESOURCE_NOT_FOUND(HttpStatus.NOT_FOUND, "Resource not found"),
