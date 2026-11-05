@@ -5,6 +5,7 @@ import com.nguyenduyhung.bookstore.catalog.author.AuthorMapper;
 import com.nguyenduyhung.bookstore.catalog.book.dto.BookResponse;
 import com.nguyenduyhung.bookstore.catalog.book.dto.BookSummaryResponse;
 import com.nguyenduyhung.bookstore.catalog.category.CategoryMapper;
+import com.nguyenduyhung.bookstore.review.RatingSummary;
 
 import java.util.Comparator;
 import java.util.List;
@@ -22,7 +23,7 @@ public final class BookMapper {
     private BookMapper() {
     }
 
-    public static BookResponse toResponse(Book book) {
+    public static BookResponse toResponse(Book book, RatingSummary rating) {
         return new BookResponse(
                 book.getId(),
                 book.getTitle(),
@@ -33,6 +34,8 @@ public final class BookMapper {
                 book.getPublishedYear(),
                 CategoryMapper.toResponse(book.getCategory()),
                 book.getAuthors().stream().sorted(BY_NAME).map(AuthorMapper::toSummary).toList(),
+                rating.roundedAverage(),
+                rating.count(),
                 book.getCreatedAt(),
                 book.getUpdatedAt());
     }

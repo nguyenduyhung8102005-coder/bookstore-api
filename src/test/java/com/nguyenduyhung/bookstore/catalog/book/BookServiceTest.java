@@ -10,6 +10,7 @@ import com.nguyenduyhung.bookstore.catalog.category.Category;
 import com.nguyenduyhung.bookstore.catalog.category.CategoryService;
 import com.nguyenduyhung.bookstore.common.exception.AppException;
 import com.nguyenduyhung.bookstore.common.exception.ErrorCode;
+import com.nguyenduyhung.bookstore.review.ReviewRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -45,6 +46,8 @@ class BookServiceTest {
     private CategoryService categoryService;
     @Mock
     private AuthorService authorService;
+    @Mock
+    private ReviewRepository reviewRepository;
 
     @InjectMocks
     private BookService bookService;

@@ -41,6 +41,8 @@ public interface BookRepository extends JpaRepository<Book, Long>, JpaSpecificat
     @EntityGraph(attributePaths = "category")
     Page<Book> findAll(Specification<Book> spec, Pageable pageable);
 
+    boolean existsByIdAndActiveTrue(Long id);
+
     boolean existsByIsbn(String isbn);
 
     boolean existsByIsbnAndIdNot(String isbn, Long id);

@@ -75,6 +75,13 @@ Bảng `books` có cột `version` (`@Version`). Mỗi câu UPDATE đều kèm �
 
 Dự án dùng kiểu "UPDATE có điều kiện" ở chỗ khác: thu hồi refresh token (`RefreshTokenRepository.revokeIfActive`).
 
+## Đánh giá sách
+
+- `GET /api/v1/books/{bookId}/reviews` (public, mới nhất trước).
+- `POST /api/v1/books/{bookId}/reviews` `{rating 1–5, comment}`: chỉ người có đơn **COMPLETED** chứa cuốn sách mới được viết, mỗi người một đánh giá cho mỗi cuốn.
+- `PUT /api/v1/reviews/{id}` (chỉ người viết) · `DELETE /api/v1/reviews/{id}` (người viết hoặc ADMIN).
+- Chi tiết sách (`GET /api/v1/books/{id}`) có thêm `averageRating` (1 chữ số thập phân) và `reviewCount`, tính bằng AVG/COUNT ngay trong DB.
+
 ## Chạy test
 
 ```bash
@@ -111,6 +118,6 @@ Lỗi:
 - [x] Giai đoạn 4: Giỏ hàng
 - [x] Giai đoạn 5a: Đặt hàng, trừ tồn kho an toàn khi mua đồng thời (optimistic locking + retry)
 - [x] Giai đoạn 5b: Thanh toán, hủy đơn, trạng thái đơn, tự hủy đơn quá hạn
-- [ ] Giai đoạn 6: Đánh giá sách
+- [x] Giai đoạn 6: Đánh giá sách
 - [ ] Giai đoạn 7: Thống kê cho admin
 - [ ] Giai đoạn 8: Docker hóa, hoàn thiện README

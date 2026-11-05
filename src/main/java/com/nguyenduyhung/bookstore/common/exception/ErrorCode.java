@@ -34,6 +34,7 @@ public enum ErrorCode {
     // ===== 403 - Đã xác thực nhưng không có quyền =====
     ACCESS_DENIED(HttpStatus.FORBIDDEN, "You do not have permission to perform this action"),
     ACCOUNT_DISABLED(HttpStatus.FORBIDDEN, "Account is disabled"),
+    REVIEW_NOT_ALLOWED(HttpStatus.FORBIDDEN, "You can only review books from your completed orders"),
 
     // ===== 409 - Xung đột dữ liệu nghiệp vụ =====
     EMAIL_ALREADY_EXISTS(HttpStatus.CONFLICT, "Email is already registered"),
@@ -49,6 +50,7 @@ public enum ErrorCode {
     CART_EMPTY(HttpStatus.CONFLICT, "Your cart is empty"),
     INVALID_ORDER_STATUS_TRANSITION(HttpStatus.CONFLICT, "This action is not allowed in the current order status"),
     ORDER_EXPIRED(HttpStatus.CONFLICT, "The order has expired because it was not paid in time"),
+    REVIEW_ALREADY_EXISTS(HttpStatus.CONFLICT, "You have already reviewed this book; edit your existing review instead"),
 
     // ===== 404 / 405 / 409 / 415 =====
     RESOURCE_NOT_FOUND(HttpStatus.NOT_FOUND, "Resource not found"),

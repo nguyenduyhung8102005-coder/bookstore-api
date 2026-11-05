@@ -11,6 +11,8 @@ import com.nguyenduyhung.bookstore.catalog.category.CategoryService;
 import com.nguyenduyhung.bookstore.common.exception.AppException;
 import com.nguyenduyhung.bookstore.common.exception.ErrorCode;
 import com.nguyenduyhung.bookstore.common.response.PageResponse;
+import com.nguyenduyhung.bookstore.review.RatingSummary;
+import com.nguyenduyhung.bookstore.review.ReviewRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -32,14 +34,15 @@ public class BookService {
     private final BookRepository bookRepository;
     private final CategoryService categoryService;
     private final AuthorService authorService;
+    private final ReviewRepository reviewRepository;
 
     // ===================== Public =====================
 
     /** Sách đã soft delete coi như không tồn tại với người dùng: trả 404. */
     public BookResponse getActiveById(Long id) {
-        return bookRepository.findByIdAndActiveTrue(id)
-                .map(BookMapper::toResponse)
+        Book book = bookRepository.findByIdAndActiveTrue(id)
                 .orElseThrow(() -> AppException.notFound("Book", id));
+        return BookMapper.toResponse(book, reviewRepository.getRatingSummary(id));
     }
 
     /**
@@ -66,7 +69,8 @@ public class BookService {
 
         Book book = Book.create(request.title(), request.isbn(), request.description(), request.price(),
                 request.stockQuantity(), request.publishedYear(), category, authors);
-        return BookMapper.toResponse(bookRepository.save(book));
+        // Sách vừa tạo chắc chắn chưa có đánh giá: không cần truy vấn.
+        return BookMapper.toResponse(bookRepository.save(book), RatingSummary.EMPTY);
     }
 
     /**
@@ -89,7 +93,7 @@ public class BookService {
         // cập nhật updatedAt và @Version tăng TRƯỚC khi map sang response; nếu
         // không, client nhận về updatedAt cũ.
         bookRepository.flush();
-        return BookMapper.toResponse(book);
+        return BookMapper.toResponse(book, reviewRepository.getRatingSummary(id));
     }
 
     /**

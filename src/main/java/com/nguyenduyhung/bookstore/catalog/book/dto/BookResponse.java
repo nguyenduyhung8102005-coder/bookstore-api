@@ -7,7 +7,12 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 
-/** Chi tiết đầy đủ của một cuốn sách. */
+/**
+ * Chi tiết đầy đủ của một cuốn sách.
+ *
+ * @param averageRating điểm trung bình (1 chữ số thập phân), null khi chưa có đánh giá
+ * @param reviewCount   số lượt đánh giá
+ */
 public record BookResponse(
         Long id,
         String title,
@@ -18,6 +23,8 @@ public record BookResponse(
         Integer publishedYear,
         CategoryResponse category,
         List<AuthorSummaryResponse> authors,
+        BigDecimal averageRating,
+        long reviewCount,
         Instant createdAt,
         Instant updatedAt
 ) {
