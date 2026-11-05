@@ -1,0 +1,16 @@
+target/
+HELP.md
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.classpath
+.project
+.settings/
+
+# OS
+.DS_Store
+
+# Biến môi trường thật, không commit
+.env

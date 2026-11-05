@@ -1,0 +1,27 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v5
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      # `verify` chạy cả unit test (Surefire) lẫn integration test (Failsafe).
+      # Runner ubuntu-latest có sẵn Docker nên Testcontainers chạy được.
+      - name: Build and test
+        run: mvn -B verify
