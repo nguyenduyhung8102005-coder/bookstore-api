@@ -10,7 +10,8 @@ Java 21 · Spring Boot 3.5 · Spring Data JPA · PostgreSQL 17 · Flyway · Spri
 
 ## Chạy trên máy
 
-Yêu cầu: JDK 21, Maven 3.9+, Docker.
+Yêu cầu: **JDK 21** (đúng bản 21, build sẽ dừng nếu Maven chạy bằng JDK khác), Maven 3.9+, Docker.
+Kiểm tra bằng `mvn -v`, dòng `Java version` phải là 21.x.
 
 ```bash
 # 1. Khởi động PostgreSQL
@@ -22,6 +23,13 @@ mvn spring-boot:run
 # 3. Mở tài liệu API
 #    http://localhost:8080/swagger-ui.html
 ```
+
+## Xác thực
+
+- Đăng ký `POST /api/v1/auth/register`, đăng nhập `POST /api/v1/auth/login` để nhận `accessToken` (15 phút) và `refreshToken` (7 ngày).
+- Gọi API cần đăng nhập với header `Authorization: Bearer <accessToken>`. Trên Swagger UI: bấm **Authorize** và dán access token.
+- Hết hạn access token: gọi `POST /api/v1/auth/refresh` với refresh token để nhận cặp token mới (token cũ bị vô hiệu).
+- Khi chạy local, tài khoản ADMIN mặc định được tạo lúc khởi động: `admin@bookstore.local` / `Admin@123456`. Môi trường thật phải đặt `ADMIN_EMAIL`, `ADMIN_PASSWORD` và `JWT_SECRET`.
 
 ## Chạy test
 
@@ -53,7 +61,7 @@ Lỗi:
 ## Tiến độ
 
 - [x] Giai đoạn 0: Nền móng (cấu hình, response chuẩn, xử lý lỗi tập trung, Swagger, CI)
-- [ ] Giai đoạn 1: Xác thực & phân quyền (JWT + refresh token)
+- [x] Giai đoạn 1: Xác thực & phân quyền (JWT + refresh token)
 - [ ] Giai đoạn 2: Quản lý sách, tác giả, thể loại
 - [ ] Giai đoạn 3: Tìm kiếm, lọc, phân trang, xử lý N+1
 - [ ] Giai đoạn 4: Giỏ hàng

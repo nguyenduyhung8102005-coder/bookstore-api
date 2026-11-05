@@ -23,9 +23,19 @@ public enum ErrorCode {
     INVALID_REQUEST_BODY(HttpStatus.BAD_REQUEST, "Malformed or unreadable request body"),
     INVALID_PARAMETER(HttpStatus.BAD_REQUEST, "Invalid request parameter"),
 
-    // ===== 401 / 403 - Xác thực & phân quyền (dùng từ Giai đoạn 1) =====
+    // ===== 401 - Chưa xác thực / xác thực thất bại =====
     UNAUTHENTICATED(HttpStatus.UNAUTHORIZED, "Authentication is required"),
+    INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, "Email or password is incorrect"),
+    ACCESS_TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "Access token has expired"),
+    INVALID_ACCESS_TOKEN(HttpStatus.UNAUTHORIZED, "Access token is invalid"),
+    INVALID_REFRESH_TOKEN(HttpStatus.UNAUTHORIZED, "Refresh token is invalid, expired or revoked"),
+
+    // ===== 403 - Đã xác thực nhưng không có quyền =====
     ACCESS_DENIED(HttpStatus.FORBIDDEN, "You do not have permission to perform this action"),
+    ACCOUNT_DISABLED(HttpStatus.FORBIDDEN, "Account is disabled"),
+
+    // ===== 409 - Xung đột dữ liệu nghiệp vụ =====
+    EMAIL_ALREADY_EXISTS(HttpStatus.CONFLICT, "Email is already registered"),
 
     // ===== 404 / 405 / 409 / 415 =====
     RESOURCE_NOT_FOUND(HttpStatus.NOT_FOUND, "Resource not found"),

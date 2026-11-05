@@ -44,6 +44,20 @@ management:
       exposure:
         include: health
 
+app:
+  jwt:
+    # Khóa ký JWT, mã hóa Base64, tối thiểu 256 bit (32 byte).
+    # Giá trị mặc định dưới đây CHỈ dùng cho máy local và CI. Môi trường thật
+    # PHẢI đặt biến JWT_SECRET khác; ai biết khóa này là tự ký được token giả.
+    secret: ${JWT_SECRET:3/hUKy/YR7ZQmdE2Gv1RhXJJSl7z85wtueonrxDtl4dUMlEBUF5qbsBxAq2Joaiv}
+    access-token-ttl: 15m
+    refresh-token-ttl: 7d
+  admin:
+    # Tài khoản ADMIN đầu tiên, chỉ được tạo khi DB chưa có ADMIN nào.
+    # Mặc định chỉ để chạy local; môi trường thật đặt ADMIN_EMAIL / ADMIN_PASSWORD.
+    email: ${ADMIN_EMAIL:admin@bookstore.local}
+    password: ${ADMIN_PASSWORD:Admin@123456}
+
 logging:
   level:
     # Đổi thành DEBUG khi cần xem câu SQL Hibernate sinh ra (dùng ở GĐ 3).

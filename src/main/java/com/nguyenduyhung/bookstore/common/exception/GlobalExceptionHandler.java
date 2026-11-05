@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -31,9 +32,9 @@ import java.util.List;
  *   cho client. Không bao giờ để lộ tên bảng, câu SQL hay stack trace ra ngoài.
  *
  * Giới hạn cần nhớ: class này chỉ bắt được exception xảy ra BÊN TRONG DispatcherServlet
- * (Controller và các tầng nó gọi). Exception ném ra từ Security Filter chạy TRƯỚC
- * DispatcherServlet nên không tới được đây; Giai đoạn 1 sẽ xử lý riêng 401/403 cho
- * trường hợp đó.
+ * (Controller và các tầng nó gọi). Lỗi 401/403 sinh ra ở Security Filter chạy TRƯỚC
+ * DispatcherServlet nên không tới được đây; chúng được xử lý ở
+ * security/RestAuthenticationEntryPoint và security/RestAccessDeniedHandler.
  */
 @Slf4j
 @RestControllerAdvice
@@ -124,6 +125,19 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
     public ResponseEntity<ApiResponse<Void>> handleMediaTypeNotSupported(HttpMediaTypeNotSupportedException ex) {
         return build(ErrorCode.UNSUPPORTED_MEDIA_TYPE, ErrorCode.UNSUPPORTED_MEDIA_TYPE.getDefaultMessage(), null);
+    }
+
+    // ===================== Phân quyền ở tầng method =====================
+
+    /**
+     * Luật phân quyền theo URL (trong SecurityConfig) bị chặn ở Security Filter và
+     * đi qua RestAccessDeniedHandler. Còn @PreAuthorize trên method thì chạy BÊN
+     * TRONG DispatcherServlet, nên exception rơi vào đây. Không có handler này,
+     * nó sẽ bị handleUnexpected() bắt và trả nhầm 500.
+     */
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ApiResponse<Void>> handleAccessDenied(AccessDeniedException ex) {
+        return build(ErrorCode.ACCESS_DENIED, ErrorCode.ACCESS_DENIED.getDefaultMessage(), null);
     }
 
     // ===================== Lỗi dữ liệu =====================

@@ -8,6 +8,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -109,6 +110,14 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
+    @DisplayName("AccessDeniedException từ @PreAuthorize trả 403 chứ không phải 500")
+    void accessDenied_returnsForbidden() throws Exception {
+        mockMvc.perform(get("/fake/forbidden"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("ACCESS_DENIED"));
+    }
+
+    @Test
     @DisplayName("Lỗi không lường trước trả 500 và KHÔNG làm lộ chi tiết nội bộ")
     void unexpectedException_hidesInternalDetails() throws Exception {
         mockMvc.perform(get("/fake/boom"))
@@ -141,6 +150,11 @@ class GlobalExceptionHandlerTest {
         @GetMapping("/items/{id}")
         public void item(@PathVariable Long id) {
             // Không làm gì: chỉ cần Spring chuyển đổi kiểu của id.
+        }
+
+        @GetMapping("/forbidden")
+        public void forbidden() {
+            throw new AccessDeniedException("Access Denied");
         }
 
         @GetMapping("/boom")

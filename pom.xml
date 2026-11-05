@@ -26,6 +26,14 @@
         <java.version>21</java.version>
         <!-- springdoc không nằm trong BOM của Spring Boot nên phải tự khai báo version -->
         <springdoc.version>2.8.9</springdoc.version>
+        <!--
+            Docker Engine 29 (có trong Docker Desktop mới) nâng phiên bản API tối
+            thiểu, khiến Testcontainers 1.x đời cũ báo "Could not find a valid
+            Docker environment". 1.21.4 là bản 1.x đã vá lỗi này.
+        -->
+        <testcontainers.version>1.21.4</testcontainers.version>
+        <!-- jjwt không nằm trong BOM của Spring Boot -->
+        <jjwt.version>0.12.6</jjwt.version>
     </properties>
 
     <dependencies>
@@ -37,6 +45,34 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+
+        <!-- ===== Bảo mật ===== -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+        <!--
+            jjwt tách làm 3 phần: code của ta chỉ được phụ thuộc vào "api"
+            (compile); phần cài đặt "impl" và bộ đọc JSON "jackson" chỉ cần lúc
+            chạy (runtime). Nhờ vậy ta không vô tình dùng class nội bộ của thư viện.
+        -->
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-api</artifactId>
+            <version>${jjwt.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-impl</artifactId>
+            <version>${jjwt.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-jackson</artifactId>
+            <version>${jjwt.version}</version>
+            <scope>runtime</scope>
         </dependency>
 
         <!-- ===== Database ===== -->
@@ -102,6 +138,35 @@
 
     <build>
         <plugins>
+            <!--
+                Chặn build ngay từ đầu nếu Maven đang chạy bằng JDK khác 21.
+                Lý do: Lombok móc vào trình biên dịch (javac) của chính JDK đang
+                chạy Maven, nên `<java.version>21</java.version>` KHÔNG đủ để
+                bảo vệ. JDK quá mới làm Lombok vỡ với lỗi khó hiểu (ví dụ
+                ExceptionInInitializerError: ...EndPosTable). Rule này biến lỗi
+                đó thành một câu thông báo rõ ràng.
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>enforce-java-21</id>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <requireJavaVersion>
+                                    <version>[21,22)</version>
+                                    <message>Du an nay can JDK 21. Hay tro JAVA_HOME toi JDK 21 roi chay lai (kiem tra bang: mvn -v).</message>
+                                </requireJavaVersion>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -117,14 +182,46 @@
             </plugin>
 
             <!--
+                Goal "properties" tạo ra property trỏ tới file jar của từng
+                dependency, ví dụ ${org.mockito:mockito-core:jar}. Dùng ở dưới để
+                nạp Mockito như một javaagent.
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>properties</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!--
                 Surefire (có sẵn) chạy unit test: các class tên *Test.
                 Failsafe chạy integration test: các class tên *IT, ở pha
                 "integration-test" khi gọi `mvn verify`. Tách ra để chạy unit
                 test nhanh bằng `mvn test` mà không cần Docker.
+
+                argLine: nạp Mockito làm javaagent ngay khi JVM test khởi động,
+                thay vì để Mockito tự gắn agent lúc chạy (JDK 21 cảnh báo việc này
+                và các JDK sau sẽ chặn). -Xshare:off tắt cảnh báo CDS đi kèm.
+                Lưu ý cho GĐ 8: khi thêm JaCoCo phải đổi thành "@{argLine} ...".
             -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <argLine>-javaagent:${org.mockito:mockito-core:jar} -Xshare:off</argLine>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
+                <configuration>
+                    <argLine>-javaagent:${org.mockito:mockito-core:jar} -Xshare:off</argLine>
+                </configuration>
                 <executions>
                     <execution>
                         <goals>
