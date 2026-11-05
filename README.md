@@ -50,6 +50,18 @@ mvn spring-boot:run
 
 - `POST /api/v1/orders` `{recipientName, phone, shippingAddress}`: tạo đơn PENDING từ toàn bộ giỏ hàng, trừ tồn kho, chốt giá, xóa giỏ. Tất cả trong một transaction: một cuốn thiếu hàng thì cả đơn bị hủy.
 - `GET /api/v1/orders` (mới nhất trước) · `GET /api/v1/orders/{id}` (đơn của người khác trả 404).
+- `POST /api/v1/orders/{id}/pay` (giả lập thanh toán) · `POST /api/v1/orders/{id}/cancel` (hủy và hoàn kho).
+- Admin: `GET /api/v1/admin/orders?status=PAID` · `GET /api/v1/admin/orders/{id}` · `PATCH /api/v1/admin/orders/{id}/status` `{status: SHIPPING | COMPLETED | CANCELLED}`.
+
+### Vòng đời đơn hàng
+
+```
+PENDING ──pay──> PAID ──ship──> SHIPPING ──complete──> COMPLETED
+   │               │
+   └──cancel──> CANCELLED <──cancel──┘     (hủy = hoàn kho)
+```
+
+Luật chuyển trạng thái nằm ở một chỗ duy nhất (`OrderStatus.canTransitionTo`). Đơn PENDING quá 30 phút chưa thanh toán bị job chạy mỗi phút tự hủy và hoàn kho (`app.order.pending-timeout`).
 
 ### Hai người cùng mua cuốn sách cuối cùng
 
@@ -98,7 +110,7 @@ Lỗi:
 - [x] Giai đoạn 3: Tìm kiếm, lọc, phân trang, xử lý N+1
 - [x] Giai đoạn 4: Giỏ hàng
 - [x] Giai đoạn 5a: Đặt hàng, trừ tồn kho an toàn khi mua đồng thời (optimistic locking + retry)
-- [ ] Giai đoạn 5b: Thanh toán, hủy đơn, trạng thái đơn, tự hủy đơn quá hạn
+- [x] Giai đoạn 5b: Thanh toán, hủy đơn, trạng thái đơn, tự hủy đơn quá hạn
 - [ ] Giai đoạn 6: Đánh giá sách
 - [ ] Giai đoạn 7: Thống kê cho admin
 - [ ] Giai đoạn 8: Docker hóa, hoàn thiện README

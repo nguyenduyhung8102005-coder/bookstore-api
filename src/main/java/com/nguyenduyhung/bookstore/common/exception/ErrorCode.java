@@ -47,6 +47,8 @@ public enum ErrorCode {
     BOOK_NOT_AVAILABLE(HttpStatus.CONFLICT, "Book is no longer available for sale"),
     INSUFFICIENT_STOCK(HttpStatus.CONFLICT, "Not enough stock for the requested quantity"),
     CART_EMPTY(HttpStatus.CONFLICT, "Your cart is empty"),
+    INVALID_ORDER_STATUS_TRANSITION(HttpStatus.CONFLICT, "This action is not allowed in the current order status"),
+    ORDER_EXPIRED(HttpStatus.CONFLICT, "The order has expired because it was not paid in time"),
 
     // ===== 404 / 405 / 409 / 415 =====
     RESOURCE_NOT_FOUND(HttpStatus.NOT_FOUND, "Resource not found"),

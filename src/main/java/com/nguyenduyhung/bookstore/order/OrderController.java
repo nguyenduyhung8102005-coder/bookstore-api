@@ -50,6 +50,23 @@ public class OrderController {
         return ApiResponse.success(orderService.getMyOrders(currentUser.id(), pageable));
     }
 
+    /**
+     * Giả lập cổng thanh toán: gọi là coi như đã trả tiền thành công.
+     * Dùng POST (không phải PATCH status) vì đây là một HÀNH ĐỘNG nghiệp vụ có quy
+     * tắc riêng (chỉ đơn PENDING, chưa quá hạn), không phải sửa tự do một trường.
+     */
+    @Operation(summary = "Thanh toán đơn hàng (giả lập): PENDING -> PAID")
+    @PostMapping("/{id}/pay")
+    public ApiResponse<OrderResponse> pay(@AuthenticationPrincipal AuthUser currentUser, @PathVariable Long id) {
+        return ApiResponse.success(orderService.pay(currentUser.id(), id), "Order paid");
+    }
+
+    @Operation(summary = "Hủy đơn hàng (chỉ khi PENDING hoặc PAID), sách được hoàn lại kho")
+    @PostMapping("/{id}/cancel")
+    public ApiResponse<OrderResponse> cancel(@AuthenticationPrincipal AuthUser currentUser, @PathVariable Long id) {
+        return ApiResponse.success(orderService.cancel(currentUser.id(), id), "Order cancelled");
+    }
+
     @Operation(summary = "Chi tiết một đơn hàng của tôi")
     @GetMapping("/{id}")
     public ApiResponse<OrderResponse> getMyOrder(@AuthenticationPrincipal AuthUser currentUser,

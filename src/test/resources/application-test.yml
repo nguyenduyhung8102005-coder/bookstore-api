@@ -8,6 +8,11 @@ spring:
         # Không bật ở môi trường thật vì tốn thêm chi phí cho mọi truy vấn.
         generate_statistics: true
 
+app:
+  scheduling:
+    # Không để job tự chạy theo lịch trong lúc test; test gọi thẳng job khi cần.
+    enabled: false
+
 logging:
   level:
     # Khi bật statistics, Hibernate in "Session Metrics" sau MỖI session; tắt cho log gọn.

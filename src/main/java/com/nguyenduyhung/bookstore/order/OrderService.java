@@ -1,76 +1,84 @@
 package com.nguyenduyhung.bookstore.order;
 
+import com.nguyenduyhung.bookstore.common.concurrency.ConcurrencyRetryTemplate;
 import com.nguyenduyhung.bookstore.common.exception.AppException;
-import com.nguyenduyhung.bookstore.common.exception.ErrorCode;
 import com.nguyenduyhung.bookstore.common.response.PageResponse;
+import com.nguyenduyhung.bookstore.order.dto.AdminOrderSummaryResponse;
 import com.nguyenduyhung.bookstore.order.dto.OrderResponse;
 import com.nguyenduyhung.bookstore.order.dto.OrderSummaryResponse;
 import com.nguyenduyhung.bookstore.order.dto.PlaceOrderRequest;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.dao.ConcurrencyFailureException;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.concurrent.ThreadLocalRandom;
-
-@Slf4j
+/**
+ * "Cửa trước" của module đơn hàng, được Controller và Job gọi.
+ *
+ * Các thao tác GHI (đặt hàng, thanh toán, hủy, đổi trạng thái) KHÔNG có
+ * @Transactional ở đây: chúng được bọc trong ConcurrencyRetryTemplate, và mỗi lần
+ * thử gọi sang một bean khác (OrderPlacementService / OrderLifecycleService) có
+ * @Transactional, nên mỗi lần thử là MỘT transaction MỚI.
+ *
+ * Nhắc lại cách optimistic locking xử lý "2 người mua cuốn cuối cùng":
+ *   1. A và B cùng đọc: tồn kho 1, version 7.
+ *   2. A commit trước: UPDATE books SET stock = 0, version = 8 WHERE id = ? AND version = 7 -> 1 dòng.
+ *   3. B commit sau: cùng câu UPDATE ... AND version = 7 -> 0 dòng (version đã là 8)
+ *      -> Hibernate ném ObjectOptimisticLockingFailureException, transaction của B rollback.
+ *   4. B được thử lại TỪ ĐẦU trong transaction mới: đọc lại thấy tồn kho 0 -> INSUFFICIENT_STOCK.
+ *
+ * Vì sao phải gọi sang bean khác? @Transactional hoạt động qua proxy của Spring.
+ * Gọi một method trong CÙNG class (self-invocation) không đi qua proxy, nên sẽ
+ * không có transaction mới nào được mở cho lần thử lại.
+ */
 @Service
 @RequiredArgsConstructor
 public class OrderService {
 
-    static final int MAX_PLACEMENT_ATTEMPTS = 3;
-
     private static final Sort NEWEST_FIRST = Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id"));
 
     private final OrderPlacementService orderPlacementService;
+    private final OrderLifecycleService orderLifecycleService;
     private final OrderRepository orderRepository;
+    private final ConcurrencyRetryTemplate retryTemplate;
 
-    /**
-     * Đặt hàng, tự thử lại khi va chạm với request khác đang mua cùng sách.
-     *
-     * Cách optimistic locking xử lý "2 người mua cuốn cuối cùng":
-     *   1. A và B cùng đọc: tồn kho 1, version 7.
-     *   2. A commit trước: UPDATE books SET stock = 0, version = 8 WHERE id = ? AND version = 7 -> 1 dòng.
-     *   3. B commit sau: cùng câu UPDATE ... AND version = 7 -> 0 dòng (version đã là 8)
-     *      -> Hibernate ném ObjectOptimisticLockingFailureException, transaction của B rollback.
-     *   4. B được thử lại TỪ ĐẦU: đọc lại thấy tồn kho 0 -> lỗi INSUFFICIENT_STOCK rõ ràng.
-     *
-     * Vì sao method này KHÔNG có @Transactional và phải gọi sang một bean khác?
-     * - Mỗi lần thử phải là một transaction MỚI: transaction cũ đã hỏng (rollback-only),
-     *   và chỉ transaction mới mới đọc được dữ liệu mới nhất (tồn kho đã bị A trừ).
-     * - @Transactional hoạt động qua proxy của Spring. Nếu gọi placeOrder của chính
-     *   class này (self-invocation), lời gọi không đi qua proxy và KHÔNG có transaction
-     *   mới nào được mở. Vì vậy phần transaction nằm ở bean riêng OrderPlacementService.
-     *
-     * Bắt ConcurrencyFailureException (lớp cha của cả optimistic lock failure lẫn
-     * deadlock) vì cả hai đều là lỗi tạm thời: thử lại thường sẽ thành công.
-     */
+    // ===================== Ghi (có thử lại khi va chạm) =====================
+
     public OrderResponse placeOrder(Long userId, PlaceOrderRequest request) {
-        for (int attempt = 1; ; attempt++) {
-            try {
-                return orderPlacementService.placeOrder(userId, request);
-            } catch (ConcurrencyFailureException e) {
-                if (attempt >= MAX_PLACEMENT_ATTEMPTS) {
-                    log.warn("Placing order for user {} failed after {} attempts due to concurrent updates",
-                            userId, attempt);
-                    throw new AppException(ErrorCode.CONCURRENT_UPDATE,
-                            "Too many people are buying the same books right now, please try again");
-                }
-                log.info("Concurrent update while placing order for user {} (attempt {}), retrying", userId, attempt);
-                backOff(attempt);
-            }
-        }
+        return retryTemplate.execute("place order",
+                () -> orderPlacementService.placeOrder(userId, request));
     }
+
+    public OrderResponse pay(Long userId, Long orderId) {
+        return retryTemplate.execute("pay order",
+                () -> orderLifecycleService.pay(userId, orderId));
+    }
+
+    public OrderResponse cancel(Long userId, Long orderId) {
+        return retryTemplate.execute("cancel order",
+                () -> orderLifecycleService.cancelByUser(userId, orderId));
+    }
+
+    public OrderResponse changeStatusByAdmin(Long orderId, OrderStatus target) {
+        return retryTemplate.execute("change order status",
+                () -> orderLifecycleService.changeStatusByAdmin(orderId, target));
+    }
+
+    /** Dùng cho job: hủy một đơn quá hạn nếu nó vẫn còn PENDING. */
+    public boolean expire(Long orderId) {
+        return retryTemplate.execute("expire order", () -> orderLifecycleService.expire(orderId));
+    }
+
+    // ===================== Đọc =====================
 
     /** Danh sách đơn của chính user, mới nhất trước (client không tự chọn cách sắp xếp). */
     @Transactional(readOnly = true)
     public PageResponse<OrderSummaryResponse> getMyOrders(Long userId, Pageable pageable) {
-        Pageable newestFirst = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), NEWEST_FIRST);
-        return PageResponse.from(orderRepository.findByUserId(userId, newestFirst).map(OrderMapper::toSummary));
+        return PageResponse.from(orderRepository.findByUserId(userId, newestFirst(pageable))
+                .map(OrderMapper::toSummary));
     }
 
     @Transactional(readOnly = true)
@@ -80,19 +88,24 @@ public class OrderService {
                 .orElseThrow(() -> AppException.notFound("Order", orderId));
     }
 
-    /**
-     * Chờ một khoảng NGẪU NHIÊN, tăng dần theo số lần thử, trước khi thử lại. Nếu mọi
-     * request cùng thử lại ngay lập tức, chúng lại va chạm đúng như lần trước;
-     * thời gian chờ ngẫu nhiên (jitter) giúp chúng "tản" ra.
-     */
-    private static void backOff(int attempt) {
-        long delayMillis = ThreadLocalRandom.current().nextLong(10, 50) * attempt;
-        try {
-            Thread.sleep(delayMillis);
-        } catch (InterruptedException e) {
-            // Khôi phục cờ interrupt để code phía trên biết luồng đã bị yêu cầu dừng.
-            Thread.currentThread().interrupt();
-            throw new AppException(ErrorCode.CONCURRENT_UPDATE);
-        }
+    /** Admin xem mọi đơn, lọc theo trạng thái nếu có. */
+    @Transactional(readOnly = true)
+    public PageResponse<AdminOrderSummaryResponse> searchForAdmin(OrderStatus status, Pageable pageable) {
+        Pageable sorted = newestFirst(pageable);
+        Page<Order> orders = status == null
+                ? orderRepository.findAll(sorted)
+                : orderRepository.findByStatus(status, sorted);
+        return PageResponse.from(orders.map(OrderMapper::toAdminSummary));
+    }
+
+    @Transactional(readOnly = true)
+    public OrderResponse getForAdmin(Long orderId) {
+        return orderRepository.findWithItemsById(orderId)
+                .map(OrderMapper::toResponse)
+                .orElseThrow(() -> AppException.notFound("Order", orderId));
+    }
+
+    private static Pageable newestFirst(Pageable pageable) {
+        return PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), NEWEST_FIRST);
     }
 }

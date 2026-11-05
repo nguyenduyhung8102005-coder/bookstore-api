@@ -66,6 +66,14 @@ app:
     secret: ${JWT_SECRET:3/hUKy/YR7ZQmdE2Gv1RhXJJSl7z85wtueonrxDtl4dUMlEBUF5qbsBxAq2Joaiv}
     access-token-ttl: 15m
     refresh-token-ttl: 7d
+  order:
+    # Đơn PENDING quá thời gian này chưa thanh toán thì bị hủy và hoàn kho.
+    pending-timeout: 30m
+    # Bao lâu job kiểm tra đơn quá hạn một lần (định dạng ISO-8601: PT1M = 1 phút).
+    expiration-check-interval: PT1M
+  scheduling:
+    # Đặt false để tắt mọi @Scheduled (integration test tắt để tự điều khiển job).
+    enabled: true
   admin:
     # Tài khoản ADMIN đầu tiên, chỉ được tạo khi DB chưa có ADMIN nào.
     # Mặc định chỉ để chạy local; môi trường thật đặt ADMIN_EMAIL / ADMIN_PASSWORD.

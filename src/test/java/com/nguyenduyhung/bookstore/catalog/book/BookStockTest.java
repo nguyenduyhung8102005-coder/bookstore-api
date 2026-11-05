@@ -29,6 +29,13 @@ class BookStockTest {
     }
 
     @Test
+    void increaseStock_addsBackQuantity() {
+        book.increaseStock(2);
+
+        assertThat(book.getStockQuantity()).isEqualTo(5);
+    }
+
+    @Test
     void decreaseStock_neverGoesBelowZero() {
         assertThatThrownBy(() -> book.decreaseStock(4)).isInstanceOf(IllegalArgumentException.class);
         assertThat(book.getStockQuantity()).isEqualTo(3);

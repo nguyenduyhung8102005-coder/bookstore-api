@@ -1,5 +1,6 @@
 package com.nguyenduyhung.bookstore.order;
 
+import com.nguyenduyhung.bookstore.order.dto.AdminOrderSummaryResponse;
 import com.nguyenduyhung.bookstore.order.dto.OrderItemResponse;
 import com.nguyenduyhung.bookstore.order.dto.OrderResponse;
 import com.nguyenduyhung.bookstore.order.dto.OrderSummaryResponse;
@@ -26,6 +27,12 @@ public final class OrderMapper {
     public static OrderSummaryResponse toSummary(Order order) {
         return new OrderSummaryResponse(
                 order.getId(), order.getStatus(), order.getTotalAmount(), order.totalItems(), order.getCreatedAt());
+    }
+
+    public static AdminOrderSummaryResponse toAdminSummary(Order order) {
+        return new AdminOrderSummaryResponse(
+                order.getId(), order.getUserId(), order.getStatus(), order.getTotalAmount(),
+                order.totalItems(), order.getRecipientName(), order.getCreatedAt());
     }
 
     private static OrderItemResponse toItemResponse(OrderItem item) {

@@ -1,6 +1,8 @@
 package com.nguyenduyhung.bookstore.order;
 
 import com.nguyenduyhung.bookstore.common.entity.BaseEntity;
+import com.nguyenduyhung.bookstore.common.exception.AppException;
+import com.nguyenduyhung.bookstore.common.exception.ErrorCode;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -91,5 +93,40 @@ public class Order extends BaseEntity {
 
     public int totalItems() {
         return items.stream().mapToInt(OrderItem::getQuantity).sum();
+    }
+
+    // ===================== Chuyển trạng thái =====================
+    // Mỗi method là một hành động nghiệp vụ có tên rõ ràng. Không có setStatus():
+    // muốn đổi trạng thái thì BẮT BUỘC đi qua transitionTo(), nơi kiểm tra luật.
+
+    public void markPaid(Instant now) {
+        transitionTo(OrderStatus.PAID);
+        this.paidAt = now;
+    }
+
+    public void ship() {
+        transitionTo(OrderStatus.SHIPPING);
+    }
+
+    public void complete() {
+        transitionTo(OrderStatus.COMPLETED);
+    }
+
+    /** Chỉ đổi trạng thái. Việc hoàn kho do service làm (cần truy cập bảng books). */
+    public void cancel(Instant now) {
+        transitionTo(OrderStatus.CANCELLED);
+        this.cancelledAt = now;
+    }
+
+    public boolean isPending() {
+        return status == OrderStatus.PENDING;
+    }
+
+    private void transitionTo(OrderStatus target) {
+        if (!status.canTransitionTo(target)) {
+            throw new AppException(ErrorCode.INVALID_ORDER_STATUS_TRANSITION,
+                    "Cannot change order status from %s to %s".formatted(status, target));
+        }
+        this.status = target;
     }
 }

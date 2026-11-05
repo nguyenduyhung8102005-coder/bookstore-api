@@ -120,4 +120,15 @@ public class Book extends BaseEntity {
         }
         this.stockQuantity -= quantity;
     }
+
+    /**
+     * Hoàn kho khi đơn bị hủy. Vẫn hoàn cả khi sách đã ngừng bán: số sách đó
+     * thực tế đã quay về kho, admin có thể bán lại sau.
+     */
+    public void increaseStock(int quantity) {
+        if (quantity <= 0) {
+            throw new IllegalArgumentException("Quantity must be positive: " + quantity);
+        }
+        this.stockQuantity += quantity;
+    }
 }

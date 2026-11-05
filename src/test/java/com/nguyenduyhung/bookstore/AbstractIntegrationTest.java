@@ -94,6 +94,27 @@ public abstract class AbstractIntegrationTest {
         return postAsAdmin(adminToken, "/api/v1/admin/books", book);
     }
 
+    /**
+     * Cho user (theo access token) bỏ sách vào giỏ rồi đặt hàng ngay.
+     *
+     * @return id của đơn hàng mới (trạng thái PENDING)
+     */
+    protected Long createOrder(String userAccessToken, Long bookId, int quantity) throws Exception {
+        mockMvc.perform(post("/api/v1/cart/items")
+                        .header(HttpHeaders.AUTHORIZATION, authHeader(userAccessToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(toJson(Map.of("bookId", bookId, "quantity", quantity))))
+                .andExpect(status().isOk());
+        return dataId(mockMvc.perform(post("/api/v1/orders")
+                        .header(HttpHeaders.AUTHORIZATION, authHeader(userAccessToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(toJson(Map.of(
+                                "recipientName", "Nguyễn Văn A",
+                                "phone", "0912345678",
+                                "shippingAddress", "1 Đại Cồ Việt, Hà Nội"))))
+                .andExpect(status().isCreated()));
+    }
+
     private Long postAsAdmin(String adminToken, String url, Object body) throws Exception {
         return dataId(mockMvc.perform(post(url)
                         .header(HttpHeaders.AUTHORIZATION, authHeader(adminToken))
